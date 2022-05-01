@@ -12,7 +12,7 @@
         "symfony/serializer-pack": "*"
     },
     "autoload": {
-        "psr-4": { "igoooor\\ApiBundle\\": "" },
+        "psr-4": { "Igoooor\\ApiBundle\\": "" },
         "exclude-from-classmap": ["/Tests/"]
     }
 }
