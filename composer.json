@@ -1,0 +1,18 @@
+{
+    "name": "igoooor/api-bundle",
+    "description": "API Components",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "require": {
+        "doctrine/orm": "^2.6.0",
+        "igoooor/user-bundle": "^2.0",
+        "jms/serializer-bundle": "^3.5",
+        "symfony/framework-bundle": "^4.3|^5.2|^6.0",
+        "symfony/security-bundle": "^4.3|^5.2|^6.0",
+        "symfony/serializer-pack": "*"
+    },
+    "autoload": {
+        "psr-4": { "igoooor\\ApiBundle\\": "" },
+        "exclude-from-classmap": ["/Tests/"]
+    }
+}
