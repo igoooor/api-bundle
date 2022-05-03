@@ -266,7 +266,7 @@ abstract class AbstractCrudController extends AbstractController
     protected function deleteEntity($entity, Crud $crud): void
     {
         if (!$crud->isSoftDelete()) {
-            $this->getRepository()->remove($entity);
+            $this->getRepository()->delete($entity);
 
             return;
         }
@@ -297,7 +297,7 @@ abstract class AbstractCrudController extends AbstractController
      */
     protected function persistEntity($entity): void
     {
-        $this->getRepository()->persist($entity);
+        $this->getRepository()->save($entity);
     }
 
     /**
@@ -308,7 +308,7 @@ abstract class AbstractCrudController extends AbstractController
      */
     protected function updateEntity($entity): void
     {
-        $this->getRepository()->persist($entity);
+        $this->getRepository()->save($entity);
     }
 
     /**
