@@ -15,40 +15,34 @@ use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
  */
 abstract class AbstractRepository extends ServiceEntityRepository
 {
-    /**
-     * @param mixed $object
-     * @param bool  $andFlush
-     *
-     * @throws \Doctrine\ORM\ORMException
-     */
-    public function persist($object, bool $andFlush = true): void
-    {
-        $this->_em->persist($object);
-        if (true === $andFlush) {
-            $this->flush();
-        }
-    }
-
-    /**
-     * @param mixed $object
-     * @param bool  $andFlush
-     *
-     * @throws \Doctrine\ORM\ORMException
-     */
-    public function remove($object, bool $andFlush = true): void
-    {
-        $this->_em->remove($object);
-        if (true === $andFlush) {
-            $this->flush();
-        }
-    }
-
-    /**
-     * @throws \Doctrine\ORM\ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     */
     public function flush(): void
     {
         $this->_em->flush();
+    }
+
+    public function persist(...$entities): void
+    {
+        foreach ($entities as $entity) {
+            $this->_em->persist($entity);
+        }
+    }
+
+    public function remove(...$entities): void
+    {
+        foreach ($entities as $entity) {
+            $this->_em->remove($entity);
+        }
+    }
+
+    public function save(...$entities): void
+    {
+        $this->persist(...$entities);
+        $this->flush();
+    }
+
+    public function delete(...$entities): void
+    {
+        $this->remove(...$entities);
+        $this->flush();
     }
 }
