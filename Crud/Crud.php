@@ -58,7 +58,7 @@ class Crud
     /**
      * @var string
      */
-    private string $defaultRole = 'IS_AUTHENTICATED_ANONYMOUSLY';
+    private string $defaultRole = 'PUBLIC_ACCESS';
     /**
      * @var string
      */
