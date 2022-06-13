@@ -17,6 +17,7 @@ use Igoooor\ApiBundle\Response\ApiResponseInterface;
 use Igoooor\UserBundle\Model\UserInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\Exception\JsonException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -130,18 +131,11 @@ abstract class AbstractController
             return [];
         }
 
-        $data = null;
-        $requestContent = $request->getContent();
-        if (!is_string($requestContent)) {
+        try {
+            return $request->toArray();
+        } catch (JsonException $e) {
             throw $this->createInvalidRequestBodyFormatApiProblemException();
         }
-
-        $data = json_decode($requestContent, true);
-        if (null === $data) {
-            throw $this->createInvalidRequestBodyFormatApiProblemException();
-        }
-
-        return $data;
     }
 
     /**
