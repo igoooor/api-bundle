@@ -5,11 +5,12 @@
     "license": "MIT",
     "require": {
         "doctrine/orm": "^2.6.0",
-        "igoooor/user-bundle": "^1.0",
         "jms/serializer-bundle": "^4.0",
-        "symfony/framework-bundle": "^4.3|^5.2|^6.0",
-        "symfony/security-bundle": "^4.3|^5.2|^6.0",
-        "symfony/serializer-pack": "*"
+        "symfony/framework-bundle": "6.2.*",
+        "symfony/security-bundle": "6.2.*",
+        "symfony/serializer-pack": "*",
+        "symfony/form": "6.2.*",
+        "doctrine/doctrine-bundle": "^2.7"
     },
     "autoload": {
         "psr-4": { "Igoooor\\ApiBundle\\": "" },

@@ -13,3 +13,6 @@ vendor/
 composer.lock
 
 Tests/_reports
+
+.php-cs-fixer.dist.php
+.editorconfig

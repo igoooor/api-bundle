@@ -9,72 +9,41 @@
 namespace Igoooor\ApiBundle\Controller;
 
 use Doctrine\ORM\ORMException;
-use Doctrine\ORM\Query\Expr\Select;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Igoooor\ApiBundle\Crud\Crud;
 use Igoooor\ApiBundle\Crud\Exception\CrudMethodNotAllowedHttpException;
 use Igoooor\ApiBundle\Crud\Exception\InvalidCrudRepositoryException;
 use Igoooor\ApiBundle\Event\CrudEventInterface;
-use Igoooor\ApiBundle\Exception\InvalidApiResponseException;
 use Igoooor\ApiBundle\Repository\AbstractRepository;
-use Igoooor\ApiBundle\Response\ApiResponseFactoryInterface;
 use Igoooor\ApiBundle\Response\ApiResponseInterface;
 use Igoooor\ApiBundle\Crud\ListWrapper\CrudWrapperInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Routing\RouterInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\Contracts\Service\Attribute\Required;
 
-/**
- * Class AbstractCrudController
- */
 abstract class AbstractCrudController extends AbstractController
 {
-    /**
-     * @var Crud
-     */
     private Crud $crud;
-    /**
-     * @var ManagerRegistry
-     */
     private ManagerRegistry $registry;
 
-    /**
-     * AbstractCrudController constructor.
-     *
-     * @param ApiResponseFactoryInterface   $apiResponseFactory
-     * @param RouterInterface               $router
-     * @param AuthorizationCheckerInterface $authorizationChecker
-     * @param TokenStorageInterface         $tokenStorage
-     * @param FormFactoryInterface          $formFactory
-     * @param ManagerRegistry               $registry
-     */
-    public function __construct(ApiResponseFactoryInterface $apiResponseFactory, RouterInterface $router, AuthorizationCheckerInterface $authorizationChecker, TokenStorageInterface $tokenStorage, FormFactoryInterface $formFactory, ManagerRegistry $registry)
+    #[Required]
+    public function setRegistry(ManagerRegistry $registry): void
     {
-        parent::__construct($apiResponseFactory, $router, $authorizationChecker, $tokenStorage, $formFactory);
         $this->registry = $registry;
+    }
+
+    public function __construct()
+    {
         $this->crud = $this->configureCrud(new Crud());
     }
 
-    /**
-     * @Route("/", name="_index", methods={"GET"})
-     *
-     * @param Request $request
-     *
-     * @return ApiResponseInterface
-     *
-     * @throws InvalidApiResponseException
-     * @throws InvalidCrudRepositoryException
-     */
+    #[Route('/', name: '.index', methods: ['GET'])]
     public function index(Request $request): ApiResponseInterface
     {
-        $this->denyAccessUnlessGranted('list');
+        $this->denyAccessUnlessGrantedMethod('list');
         $data = $this->findAll($request, $this->getRepository());
         $dataMeta = $this->processPagination($data, $request, $this->crud);
         /** @var CrudWrapperInterface $listWrapperFqcn */
@@ -87,21 +56,10 @@ abstract class AbstractCrudController extends AbstractController
         );
     }
 
-    /**
-     * @Route("/new", name="_new", methods={"GET", "POST"})
-     *
-     * @param Request                  $request
-     * @param EventDispatcherInterface $eventDispatcher
-     *
-     * @return ApiResponseInterface
-     *
-     * @throws ORMException
-     * @throws InvalidApiResponseException
-     * @throws InvalidCrudRepositoryException
-     */
+    #[Route('/new', name: '.new', methods: ['GET', 'POST'])]
     public function new(Request $request, EventDispatcherInterface $eventDispatcher): ApiResponseInterface
     {
-        $this->denyAccessUnlessGranted('new');
+        $this->denyAccessUnlessGrantedMethod('new');
         $form = $this->createNewForm($request, $this->crud);
         if ($request->isMethod(Request::METHOD_POST)) {
             $this->processForm($request, $form);
@@ -133,20 +91,10 @@ abstract class AbstractCrudController extends AbstractController
         return $this->createResponse($form);
     }
 
-    /**
-     * @Route("/{entityId}", name="_detail", methods={"GET"})
-     *
-     * @param Request $request
-     * @param string  $entityId
-     *
-     * @return ApiResponseInterface
-     *
-     * @throws InvalidApiResponseException
-     * @throws InvalidCrudRepositoryException
-     */
+    #[Route('/{entityId}', name: '.detail', methods: ['GET'])]
     public function detail(Request $request, string $entityId): ApiResponseInterface
     {
-        $this->denyAccessUnlessGranted('detail');
+        $this->denyAccessUnlessGrantedMethod('detail');
         $entity = $this->getEntity($entityId);
         if (!$this->isEntityAccessible($entity)) {
             throw $this->createAccessDeniedException();
@@ -155,22 +103,10 @@ abstract class AbstractCrudController extends AbstractController
         return $this->createResponse($entity, ['serializerGroups' => $this->getSerializerGroups($request, 'detail')]);
     }
 
-    /**
-     * @Route("/{entityId}", name="_update", methods={"PUT"})
-     *
-     * @param string                   $entityId
-     * @param Request                  $request
-     * @param EventDispatcherInterface $eventDispatcher
-     *
-     * @return ApiResponseInterface
-     *
-     * @throws ORMException
-     * @throws InvalidApiResponseException
-     * @throws InvalidCrudRepositoryException
-     */
+    #[Route('/{entityId}', name: '.update', methods: ['PUT'])]
     public function update(string $entityId, Request $request, EventDispatcherInterface $eventDispatcher): ApiResponseInterface
     {
-        $this->denyAccessUnlessGranted('update');
+        $this->denyAccessUnlessGrantedMethod('update');
         $entity = $this->getEntity($entityId);
         if (!$this->isEntityAccessible($entity)) {
             throw $this->createAccessDeniedException();
@@ -203,22 +139,10 @@ abstract class AbstractCrudController extends AbstractController
         return $this->createResponse();
     }
 
-    /**
-     * @Route("/{entityId}", name="_delete", methods={"DELETE"})
-     *
-     * @param string                   $entityId
-     * @param EventDispatcherInterface $eventDispatcher
-     * @param Request                  $request
-     *
-     * @return ApiResponseInterface
-     *
-     * @throws ORMException
-     * @throws InvalidApiResponseException
-     * @throws InvalidCrudRepositoryException
-     */
+    #[Route('/{entityId}', name: '.delete', methods: ['DELETE'])]
     public function delete(string $entityId, EventDispatcherInterface $eventDispatcher, Request $request): ApiResponseInterface
     {
-        $this->denyAccessUnlessGranted('delete');
+        $this->denyAccessUnlessGrantedMethod('delete');
         $entity = $this->getEntity($entityId);
         if (!$this->isEntityAccessible($entity)) {
             throw $this->createAccessDeniedException();
@@ -237,33 +161,14 @@ abstract class AbstractCrudController extends AbstractController
         return $this->createResponse();
     }
 
-    /**
-     * Configure CRUD options
-     *
-     * @param Crud $crud
-     *
-     * @return Crud
-     */
     abstract protected function configureCrud(Crud $crud): Crud;
 
-    /**
-     * @param string $entityFqcn
-     *
-     * @return object
-     */
     protected function createEntity(string $entityFqcn): object
     {
         return new $entityFqcn();
     }
 
-    /**
-     * @param mixed $entity
-     * @param Crud  $crud
-     *
-     * @throws ORMException
-     * @throws InvalidCrudRepositoryException
-     */
-    protected function deleteEntity($entity, Crud $crud): void
+    protected function deleteEntity(object $entity, Crud $crud): void
     {
         if (!$crud->isSoftDelete()) {
             $this->getRepository()->delete($entity);
@@ -274,49 +179,23 @@ abstract class AbstractCrudController extends AbstractController
         $this->softDeleteEntity($entity, $crud);
     }
 
-    /**
-     * @param mixed $entity
-     * @param Crud  $crud
-     *
-     * @throws InvalidCrudRepositoryException
-     * @throws ORMException
-     * @throws \Doctrine\ORM\OptimisticLockException
-     */
-    protected function softDeleteEntity($entity, Crud $crud): void
+    protected function softDeleteEntity(object $entity, Crud $crud): void
     {
         $softDeleteMethod = $crud->getSoftDeleteMethod();
         $entity->$softDeleteMethod(new \DateTime());
         $this->getRepository()->flush();
     }
 
-    /**
-     * @param mixed $entity
-     *
-     * @throws ORMException
-     * @throws InvalidCrudRepositoryException
-     */
-    protected function persistEntity($entity): void
+    protected function persistEntity(object $entity): void
     {
         $this->getRepository()->save($entity);
     }
 
-    /**
-     * @param mixed $entity
-     *
-     * @throws ORMException
-     * @throws InvalidCrudRepositoryException
-     */
-    protected function updateEntity($entity): void
+    protected function updateEntity(object $entity): void
     {
         $this->getRepository()->save($entity);
     }
 
-    /**
-     * @param Request $request
-     * @param Crud    $crud
-     *
-     * @return FormInterface
-     */
     protected function createNewForm(Request $request, Crud $crud): FormInterface
     {
         $entity = $this->createEntity($crud->getEntityFqcn());
@@ -324,50 +203,26 @@ abstract class AbstractCrudController extends AbstractController
         return $this->createForm($crud->getNewFormFqcn(), $entity, $this->getNewFormOptions($crud, $request));
     }
 
-    /**
-     * @param Crud    $crud
-     * @param Request $request
-     *
-     * @return array
-     */
     protected function getNewFormOptions(Crud $crud, Request $request): array
     {
         return $crud->getNewFormOptions();
     }
 
-    /**
-     * @param mixed   $entity
-     * @param Request $request
-     * @param Crud    $crud
-     *
-     * @return FormInterface
-     */
-    protected function createUpdateForm($entity, Request $request, Crud $crud): FormInterface
+    protected function createUpdateForm(object $entity, Request $request, Crud $crud): FormInterface
     {
         return $this->createForm($crud->getUpdateFormFqcn(), $entity, $this->getUpdateFormOptions($crud, $request));
     }
 
-    /**
-     * @param Crud    $crud
-     * @param Request $request
-     *
-     * @return array
-     */
     protected function getUpdateFormOptions(Crud $crud, Request $request): array
     {
         return $crud->getUpdateFormOptions();
     }
 
-    /**
-     * @return AbstractRepository
-     *
-     * @throws InvalidCrudRepositoryException
-     */
     protected function getRepository(): AbstractRepository
     {
         $repository = $this->registry
             ->getManagerForClass($this->crud->getEntityFqcn())
-            ->getRepository($this->crud->getEntityFqcn());
+            ?->getRepository($this->crud->getEntityFqcn());
 
         if (!$repository instanceof AbstractRepository) {
             throw new InvalidCrudRepositoryException();
@@ -376,22 +231,11 @@ abstract class AbstractCrudController extends AbstractController
         return $repository;
     }
 
-    /**
-     * @param mixed $entity
-     *
-     * @return bool
-     */
-    protected function isEntityAccessible($entity): bool
+    protected function isEntityAccessible(object $entity): bool
     {
         return true;
     }
 
-    /**
-     * @param Request $request
-     * @param string  $crudAction
-     *
-     * @return array
-     */
     protected function getSerializerGroups(Request $request, string $crudAction): array
     {
         return [
@@ -400,25 +244,12 @@ abstract class AbstractCrudController extends AbstractController
         ];
     }
 
-    /**
-     * @param Request            $request
-     * @param AbstractRepository $repository
-     *
-     * @return array|QueryBuilder
-     *
-      @throws InvalidCrudRepositoryException
-     */
     protected function findAll(Request $request, AbstractRepository $repository)
     {
         return $this->getRepository()->findAll();
     }
 
-    /**
-     * @param array|QueryBuilder $data
-     *
-     * @return array
-     */
-    protected function processPagination($data, Request $request, Crud $crud): array
+    protected function processPagination(array|QueryBuilder $data, Request $request, Crud $crud): array
     {
         if (is_array($data)) {
             return [
@@ -456,9 +287,7 @@ abstract class AbstractCrudController extends AbstractController
 
         $firstResult = ($page - 1) * $perPage;
         $qb = clone $data;
-        $results = $qb->setMaxResults($perPage)
-            ->setFirstResult($firstResult)
-            ->getQuery()->execute();
+        $results = $qb->setMaxResults($perPage)->setFirstResult($firstResult)->getQuery()->execute();
 
         $rootAlias = $data->getRootAliases();
         $total = count($data->select(sprintf('%s.id', $rootAlias[0]))->getQuery()->execute());
@@ -473,14 +302,6 @@ abstract class AbstractCrudController extends AbstractController
         ];
     }
 
-    /**
-     * @param Crud   $crud
-     * @param string $entityId
-     *
-     * @return object|null
-     *
-     * @throws InvalidCrudRepositoryException
-     */
     protected function findEntity(Crud $crud, string $entityId): ?object
     {
         $findMethod = $crud->getFindEntityRepositoryMethod();
@@ -499,13 +320,6 @@ abstract class AbstractCrudController extends AbstractController
         return $this->getRepository()->$findMethod($entityId);
     }
 
-    /**
-     * @param string $entityId
-     *
-     * @return object
-     *
-     * @throws InvalidCrudRepositoryException
-     */
     private function getEntity(string $entityId): object
     {
         $entity = $this->findEntity($this->crud, $entityId);
@@ -519,16 +333,7 @@ abstract class AbstractCrudController extends AbstractController
         return $entity;
     }
 
-    /**
-     * @param EventDispatcherInterface $eventDispatcher
-     * @param string|null              $eventFqcn
-     * @param object                   $entity
-     * @param Request                  $request
-     * @param FormInterface|null       $form
-     *
-     * @return ApiResponseInterface|null
-     */
-    private function dispatchEvent(EventDispatcherInterface $eventDispatcher, ?string $eventFqcn, object  $entity, Request $request, ?FormInterface $form = null): ?ApiResponseInterface
+    private function dispatchEvent(EventDispatcherInterface $eventDispatcher, ?string $eventFqcn, object $entity, Request $request, ?FormInterface $form = null): ?ApiResponseInterface
     {
         if (null === $eventFqcn) {
             return null;
@@ -549,13 +354,7 @@ abstract class AbstractCrudController extends AbstractController
         return $event->getResponse($this->getApiResponseFactory());
     }
 
-    /**
-     * @param string $method
-     *
-     * @throws CrudMethodNotAllowedHttpException
-     * @throws AccessDeniedException
-     */
-    private function denyAccessUnlessGranted(string $method): void
+    private function denyAccessUnlessGrantedMethod(string $method): void
     {
         if (!$this->crud->isMethodEnabled($method)) {
             throw new CrudMethodNotAllowedHttpException();
